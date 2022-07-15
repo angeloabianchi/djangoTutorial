@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>My test page</title>
+  </head>
+  <body>
+
+    <!-- {{ question }}                                 3.4 updated at 3.6
+
+    <h1>{{ question.question_text }}</h1>               3.6    
+    <ul>                                                3.6
+        {% for choice in question.choice_set.all %}     3.6
+        <li>{{ choice.choice_text }}</li>               3.6
+        {% endfor %}                                    3.6
+    </ul>                                               4.1 - all the lines above were substituted to the code below     -->     
+
+    <form action="{% url 'polls:vote' question.id %}" method="post">
+      {% csrf_token %}        <!-- all POST forms that are targeted at internal URLs should use the {% csrf_token %} template tag. -->
+      <fieldset>
+          <legend><h1>{{ question.question_text }}</h1></legend>
+          {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+          {% for choice in question.choice_set.all %}                                                         <!-- displays a radio button for each question choice. -->
+              <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ choice.id }}">     <!-- The value of each radio button is the associated question choice’s ID. The name of each radio button is "choice" -->
+              <label for="choice{{ forloop.counter }}">{{ choice.choice_text }}</label><br>
+          {% endfor %}
+      </fieldset>
+      <input type="submit" value="Vote">
+      </form>
+
+  </body>
+</html>

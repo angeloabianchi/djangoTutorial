@@ -1,0 +1,359 @@
+												TUTORIAL DJANGO PROJECT
+												
+1. Creating a Django Project - PART 1
+1.1. In the terminal, access the directory that you'd like to store your code
+-	$ django-admin startproject <project name>
+1.2. In the terminal, access the directory of the project (djangowebsite in this case) and run the command line above to start the django development server.
+-	$ python3 manage.py runserver		change the port -->	$ python3 manage.py runserver <port number>
+1.3. Access http://127.0.0.1:8000/
+
+1.4. Creating the Polls app
+1.5. To create your app, make sure you're in the same directory as manage.py and type this command:
+-	$ python3 manage.py startapp polls
+- This will create a directory polls
+1.6. Open the file polls/views.py and have a look the following Python code in it.
+1.7. To call the view, we need to map it to a URL - and for this we need a URLconf. To create a URLconf in the polls directory, create a file called urls.py. Look the code inside this file.
+1.8. The next step is to point the root URLconf at the polls.urls module. In mysite/urls.py, add an import for django.urls.include and insert an include() in the urlpatterns list. See codes in the file.
+1.9. Go to http://localhost:8000/polls/
+
+
+
+2. Writing your first Django app - PART 2
+2.1. Database Setup
+2.1.1. Open up djangowebsite/settings.py
+2.1.2. we need to create the tables in the database before we can use them. To do that, run the following command:
+-	$ python3 manage.py migrate
+
+2.2. Creating Models - A model is the single, definitive source of information about your data. It contains the essential fields and behaviors of the data you’re storing.
+2.2.1. In our poll app, we’ll create two models: Question and Choice. A Question has a question and a publication date. A Choice has two fields: the text of the choice and a vote tally. Each Choice is associated with a Question. Edit the polls/models.py --> have a look the codes inside the file. 
+
+2.3. Activating Models
+2.3.1 To include the app in our project, we need to add a reference to its configuration class in the INSTALLED_APPS setting. Edit the mysite/settings.py file and add that dotted path to the INSTALLED_APPS setting.
+2.3.2 Run the command line in the terminal:
+-	$ python3 manage.py makemigrations polls
+- By running makemigrations, you’re telling Django that you’ve made some changes to your models (in this case, you’ve made new ones) and that you’d like the changes to be stored as a migration.
+- You can read the migration for your new model if you like; it’s the file polls/migrations/0001_initial.py.
+- The sqlmigrate command takes migration names and returns their SQL:
+-	$ python3 manage.py sqlmigrate polls 0001
+
+2.3.3 Now, run migrate again to create those model tables in your database:
+-	$ python3 manage.py migrate
+- The migrate command takes all the migrations that haven’t been applied and runs them against your database, essentially, synchronizing the changes you made to your models with the schema in the database.
+- We’ll cover them in more depth in a later part of the tutorial, but for now, remember the three-step guide to making model changes:
+	- Change your models (in models.py).
+	- Run 	$ python3 manage.py makemigrations 	to create migrations for those changes
+	- Run 	$ python3 manage.py migrate 		to apply those changes to the database.
+
+2.4. Playing with the API
+2.4.1. Let’s hop into the interactive Python shell and play around with the free API Django gives you.
+-	$ python3 manage.py shell
+	>>> from polls.models import Choice, Question					# Import the model classes we just wrote.
+	>>> Question.objects.all()							# No questions are in the system yet.		output - <QuerySet []>
+	>>> from django.utils import timezone
+	>>> q = Question(question_text="What's new?", pub_date=timezone.now())		# Create a new Question.
+	>>> q.save()									# Save the object into the database. You have to call save() explicitly.
+	>>> q.id									# output - 1
+	>>> q.question_text								# Access model field values via Python attributes.	output - "What's new?"
+	>>> q.pub_date									# datetime.datetime(2012, 2, 26, 13, 0, 0, 775217, tzinfo=<UTC>)
+	>>> q.question_text = "What's up, guys?"					# Change values by changing the attributes
+	>>> q.save()									# Saving the changes
+	>>> Question.objects.all()							# objects.all() displays all the questions in the database.	output - <QuerySet [<Question: Question object (1)>]>
+2.4.2. <Question: Question object (1)> isn’t a helpful representation of this object. Let’s fix that by editing the Question model (in the polls/models.py file) and adding a __str__() method to both Question and Choice:	#have a look on the code inside the file models.py
+2.4.3. Note the addition of import datetime and from django.utils import timezone, to reference Python’s standard datetime module and Django’s time-zone-related utilities in django.utils.timezone
+2.4.4. Save the changes and start a new Python interactive shell running $ python3 manage.py shell
+	>>> from polls.models import Choice, Question
+
+	# Make sure our __str__() addition worked.
+	>>> Question.objects.all()
+	<QuerySet [<Question: What's up?>]>
+
+	# Django provides a rich database lookup API that's entirely driven by
+	# keyword arguments.
+	>>> Question.objects.filter(id=1)
+	<QuerySet [<Question: What's up?>]>
+	>>> Question.objects.filter(question_text__startswith='What')
+	<QuerySet [<Question: What's up?>]>
+
+	# Get the question that was published this year.
+	>>> from django.utils import timezone
+	>>> current_year = timezone.now().year
+	>>> Question.objects.get(pub_date__year=current_year)
+	<Question: What's up?>
+
+	# Request an ID that doesn't exist, this will raise an exception.
+	>>> Question.objects.get(id=2)
+	Traceback (most recent call last):
+	    ...
+	DoesNotExist: Question matching query does not exist.
+
+	# Lookup by a primary key is the most common case, so Django provides a
+	# shortcut for primary-key exact lookups.
+	# The following is identical to Question.objects.get(id=1).
+	>>> Question.objects.get(pk=1)
+	<Question: What's up?>
+
+	# Make sure our custom method worked.
+	>>> q = Question.objects.get(pk=1)
+	>>> q.was_published_recently()
+	True
+
+	# Give the Question a couple of Choices. The create call constructs a new
+	# Choice object, does the INSERT statement, adds the choice to the set
+	# of available choices and returns the new Choice object. Django creates
+	# a set to hold the "other side" of a ForeignKey relation
+	# (e.g. a question's choice) which can be accessed via the API.
+	>>> q = Question.objects.get(pk=1)
+
+	# Display any choices from the related object set -- none so far.
+	>>> q.choice_set.all()
+	<QuerySet []>
+
+	# Create three choices.
+	>>> q.choice_set.create(choice_text='Not much', votes=0)
+	<Choice: Not much>
+	>>> q.choice_set.create(choice_text='The sky', votes=0)
+	<Choice: The sky>
+	>>> c = q.choice_set.create(choice_text='Just hacking again', votes=0)
+
+	# Choice objects have API access to their related Question objects.
+	>>> c.question
+	<Question: What's up?>
+
+	# And vice versa: Question objects get access to Choice objects.
+	>>> q.choice_set.all()
+	<QuerySet [<Choice: Not much>, <Choice: The sky>, <Choice: Just hacking again>]>
+	>>> q.choice_set.count()
+	3
+
+	# The API automatically follows relationships as far as you need.
+	# Use double underscores to separate relationships.
+	# This works as many levels deep as you want; there's no limit.
+	# Find all Choices for any question whose pub_date is in this year
+	# (reusing the 'current_year' variable we created above).
+	>>> Choice.objects.filter(question__pub_date__year=current_year)
+	<QuerySet [<Choice: Not much>, <Choice: The sky>, <Choice: Just hacking again>]>
+
+	# Let's delete one of the choices. Use delete() for that.
+	>>> c = q.choice_set.filter(choice_text__startswith='Just hacking')
+	>>> c.delete()
+
+2.5. Creating an Admin User
+- $ python3 manage.py createsuperuser
+Enter your desired username and press enter.
+- Username: admin		# escolhi usar 'bianco'
+You will then be prompted for your desired email address:
+- Email address: admin@example.com
+You will be asked to enter your password twice, the second time as a confirmation of the first.
+- Password: **********		# escolhi 'bianco123'
+- Password (again): *********
+- Superuser created successfully.
+
+2.6. Start the development server again using the command $ python3 manage.py runserver
+2.6.1. Now, open a web browser and go to “/admin/” on your local domain – e.g., http://127.0.0.1:8000/admin/.
+
+2.7. Make the poll app modifiable in the admin
+2.7.1. we need to tell the admin that Question objects have an admin interface. Open the polls/admin.py
+
+
+
+3. Writing your first Django APP - Part 3
+3.1. Writing more views
+- let’s add a few more views to polls/views.py
+
+3.2. Write views that actually do something
+3.2.1. Let’s use Django’s own database API. Here’s one stab at a new index() view, which displays the latest 5 poll questions in the system. Open the polls/views.py on VScode.
+3.2.2. There’s a problem here, though: the page’s design is hard-coded in the view. If you want to change the way the page looks, you’ll have to edit this Python code. Create a directory called templates in your polls directory. Django will look for templates in there.
+- Within the templates directory you have just created, create another directory called polls, and within that create a file called index.html. 
+- Open the index.html file and have a look on the code written.
+- Let’s update our index view in polls/views.py to use the template
+- That code loads the template called polls/index.html and passes it a context.
+- Load the page by pointing your browser at “/polls/”
+
+3.3. A shortcut: render()
+- The render() function takes the request object as its first argument, a template name as its second argument and a dictionary as its optional third argument.
+
+3.4. Raising a 404 error
+- The view raises the Http404 exception if a question with the requested ID doesn’t exist.
+- create a detail.html template inside template/polls directory.
+- Access http://localhost:8000/polls/282	<--- Error 404 because does not exist this ID
+
+3.5. A shortcut: get_object_or_404()
+- It’s a very common idiom to use get() and raise Http404 if the object doesn’t exist. Django provides a shortcut. Check detail() view to see the changes
+
+3.6. Use the template system
+- The template system uses dot-lookup syntax to access variable attributes. In the example of {{ question.question_text }}, first Django does a dictionary lookup on the object question. Failing that, it tries an attribute lookup – which works, in this case. If attribute lookup had failed, it would’ve tried a list-index lookup.
+- Method-calling happens in the {% for %} loop: question.choice_set.all is interpreted as the Python code question.choice_set.all(), which returns an iterable of Choice objects and is suitable for use in the {% for %} tag.
+
+3.7 - Removing hardcoded URLs in templates
+- Right now we have hardcoded this: 
+-	<li><a href="/polls/{{ question.id }}/">{{ question.question_text }}</a></li>
+- When we have a project with a lot of templates, this is a problem to hardcode the URL templates. However, since you defined the name argument in the path() functions in the polls.urls module, you can remove a reliance on specific URL paths defined in your url configurations by using the {% url %} template tag:
+-	<li><a href="{% url 'detail' question.id %}">{{ question.question_text }}</a></li>
+
+3.8 - Namespacing URL names
+- The tutorial project has just one app, polls. In real Django projects, there might be five, ten, twenty apps or more.
+- Django knows which app view to create for a url when using the {% url %} template tag adding namespaces to your URLconf. In the polls/urls.py file, go ahead and add an app_name to set the application namespace. Open polls/urls.py on VScode and see the changes.
+- Now change your polls/index.html
+
+
+
+4. Wrinting your first Django app - Part 4
+4.1. - Write a Minimal Form
+4.1.1. Update the detail.html file.
+4.1.1. let’s create a Django view that handles the submitted data and does something with it. See the changes on polls/views.py
+4.1.2 Lets change the results view.
+4.1.3 create a polls/results.html template. After created, go to http://localhost:8000/polls/1
+
+4.2 - Use generic views: Less code is better
+- The detail() and results() views are very short – and, as mentioned above, redundant. The index() view, which displays a list of polls, is similar. Because of that, Generic views abstract common patterns to the point where you don’t even need to write Python code to write an app.
+- Let’s convert our poll app to use the generic views system, so we can delete a bunch of our own code. We’ll have to take a few steps to make the conversion. We will:
+	1. Convert the URLconf.
+	- polls/urls.py URLconf and change it
+	- Note that the name of the matched pattern in the path strings of the second and third patterns has changed from <question_id> to <pk>.
+	2. Delete some of the old, unneeded views.
+	3. Introduce new views based on Django’s generic views.
+
+4.3 Amend Views
+4.3.1. we’re going to remove our old index, detail, and results views and use Django’s generic views instead. Open the polls/views.py file and change it.
+- We’re using two generic views here: ListView and DetailView. Respectively, those two views abstract the concepts of “display a list of objects” and “display a detail page for a particular type of object.”
+	- Each generic view needs to know what model it will be acting upon. This is provided using the model attribute.
+	- The DetailView generic view expects the primary key value captured from the URL to be called "pk", so we’ve changed question_id to pk for the generic views.
+
+
+
+5. Writing your first Django app, part 5
+5.1. Introducing automated testing
+- What are automated tests?
+	- Tests are routines that check the operation of your code.
+	- Automated tests is the testing work is done for you by the system. You create a set of tests once, and then as you make changes to your app, you can check that your code still works as you originally intended, without having to perform time consuming manual testing.
+- Basic testing strategies:
+	- Some programmers follow a discipline called “test-driven development”; they actually write their tests before they write their code.
+
+5.2. Writing our first test
+5.2.1. We identify a bug
+- there’s a little bug in the polls application for us to fix right away: the Question.was_published_recently() method returns True if the Question was published within the last day (which is correct) but also if the Question’s pub_date field is in the future (which certainly isn’t).
+- Confirm the bug by using the shell to check the method on a question whose date lies in the future:
+	- $ python3 manage.py shell
+	
+	>>> import datetime
+	>>> from django.utils import timezone
+	>>> from polls.models import Question
+	# create a Question instance with pub_date 30 days in the future
+	>>> future_question = Question(pub_date=timezone.now() + datetime.timedelta(days=30))
+	# was it published recently?
+	>>> future_question.was_published_recently()
+	True
+	
+	- Since things in the future are not ‘recent’, this is clearly wrong.
+
+5.2.2. Create a test to expose the bug
+- What we’ve just done in the shell to test for the problem is exactly what we can do in an automated test, so let’s turn that into an automated test.
+- go to tests.py file
+
+5.2.3. Running Tests
+- In the terminal, run our test using:
+	- $ python3 manage.py test polls
+- What happened is this:
+    	- manage.py test polls looked for tests in the polls application
+    	- it found a subclass of the django.test.TestCase class
+    	- it created a special database for the purpose of testing
+    	- it looked for test methods - ones whose names begin with test
+    	- in test_was_published_recently_with_future_question it created a Question instance whose pub_date field is 30 days in the future
+    	- … and using the assertIs() method, it discovered that its was_published_recently() returns True, though we wanted it to return False
+- The test informs us which test failed and even the line on which the failure occurred.
+
+5.2.4. Fixing the Bug
+- We already know what the problem is: Question.was_published_recently() should return False if its pub_date is in the future. 
+- Amend (altere) the method in models.py, so that it will only return True of the date is also in the past.
+- run the test again <the bug is fixed>
+
+5.2.5. More Comprehensive Tests
+- Add two more test methods to the same class inside polls/tests.py file, to test the behavior of the method more comprehensively
+
+5.2.6. The Django test client
+- Django provides a test Client to simulate a user interacting with the code at the view level. We can use it in tests.py or even in the shell.
+- start the test in the shell
+	- $ python3 manage.py shell
+	
+	>>> from django.test.utils import setup_test_environment
+	>>> setup_test_environment()
+	
+	- setup_test_environment() installs a template renderer which will allow us to examine some additional attributes on responses such as response.context that otherwise wouldn’t be available.
+	- Next we need to import the test client class (later in tests.py we will use the django.test.TestCase class, which comes with its own client, so this won’t be required):
+	
+	>>> from django.test import Client
+	>>> # create an instance of the client for our use
+	>>> client = Client()
+	>>> # get a response from '/'
+	>>> response = client.get('/')
+	Not Found: /
+	# we should expect a 404 from that address; if you instead see an
+	# "Invalid HTTP_HOST header" error and a 400 response, you probably
+	# omitted the setup_test_environment() call described earlier.
+	>>> response.status_code
+	404
+	# on the other hand we should expect to find something at '/polls/'
+	# we'll use 'reverse()' rather than a hardcoded URL
+	>>> from django.urls import reverse
+	>>> response = client.get(reverse('polls:index'))
+	>>> response.status_code
+	200
+	>>> response.content
+b'<!DOCTYPE html>\n<html>\n  <head>\n    <meta charset="utf-8">\n    <title>My test page</title>\n  </head>\n  <body>\n\n                                                                       <!-- added at 3.2.2 --> \n        <ul>                                                                                        <!-- added at 3.2.2 -->\n                                                          <!-- added at 3.2.2 -->\n            <!-- <li><a href="/polls/1/">What&#x27;s up guys?</a></li> -->  <!-- added at 3.2.2 updated at 3.8-->\n            <li><a href="/polls/1/">What&#x27;s up guys?</a></li><!-- added at 3.8 -->\n                                                                                        <!-- added at 3.2.2 -->\n        </ul>                                                                                       <!-- added at 3.2.2 -->\n                                                                                         <!-- added at 3.2.2 -->\n\n  </body>\n</html>'
+	>>> response.context['latest_question_list']
+	<QuerySet [<Question: What's up?>]>
+
+5.2.7. Improving our view
+- The list of polls shows polls that aren’t published yet (i.e. those that have a pub_date in the future). Let’s fix that.
+- go to polls/views.py
+- We need to amend the get_queryset() method and change it so that it also checks the date by comparing it with timezone.now(). 
+- and then we must amend the get_queryset method
+
+5.2.8. Testing our new view
+- let’s also create a test, based on our shell session above.
+- Access polls/tests.py file
+- we’ll create a shortcut function to create questions as well as a new test class
+
+5.2.9. Testing the DetailView
+- even though future questions don’t appear in the index, users can still reach them if they know or guess the right URL. So we need to add a similar constraint to DetailView. Go to polls/views.py
+- add some tests, to check that a Question whose pub_date is in the past can be displayed, and that one with a pub_date in the future is not. Go to polls/tests.py and see the updates.
+
+5.2.10. When testing, more is better
+- As long as your tests are sensibly arranged, they won’t become unmanageable. Good rules-of-thumb include having:
+	1. a separate TestClass for each model or view
+	2. a separate test method for each set of conditions you want to test
+	3. test method names that describe their function
+
+
+
+6. Writing your first Django app, part 6
+- django.contrib.staticfiles collects static files from each of your applications (and any other places you specify) into a single location that can easily be served in production.
+
+6.1. Customize your app’s look and feel
+- create a directory called static in your polls directory. 
+- Django’s STATICFILES_FINDERS setting contains a list of finders that know how to discover static files from various sources.
+- create another directory inside static folder called polls
+- create a file inside static/polls directory called style.css
+- check style.css file
+- import the stylesheet in the <head> of index.html
+- The {% static %} template tag generates the absolute URL of static files.
+
+6.2. Adding a background-image
+- Create an images subdirectory in the polls/static/polls/ directory.
+- put a random image called background.gif inside images folder
+- have a look at style.css at the <body> part.
+
+
+
+7. Writing your first Django app, part 7
+7.1.1. Customize the Admin Form
+- Open the polls/admin.py file
+- create a model admin class, then pass it as the second argument to admin.site.register() – any time you need to change the admin options for a model.
+
+7.1.2.  create a model admin class, then pass it as the second argument to admin.site.register() – any time you need to change the admin options for a model.
+
+7.2. Adding Related Objects
+- we have our Question admin page, but a Question has multiple Choices, and the admin page doesn’t display choices.
+- To solve this problem. The first is to register Choice with the admin just as we did with Question.
+- Now “Choices” is an available option in the Django admin.
+
